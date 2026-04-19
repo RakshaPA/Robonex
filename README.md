@@ -1,124 +1,125 @@
-# Robonex — Lane-Aware Multi-Robot Traffic Control System
+# Robonex
 
-> A real-time warehouse traffic management platform for coordinating multiple autonomous robots with lane-based rules, dynamic congestion, deadlock resolution, and live analytics.
-
----
-
-## Overview
-
-Robonex simulates a structured warehouse environment where 6–15 robots navigate simultaneously using:
-- **A\* pathfinding** with lane-cost awareness
-- **Lane reservation** for intersection safety
-- **Deadlock detection** with automatic resolution
-- **Adaptive speed control** per lane type and congestion
-- **Real-time WebSocket** state sync at 10Hz
+A real-time warehouse traffic management system that coordinates multiple autonomous robots across a structured grid — handling pathfinding, congestion, deadlocks, and lane safety all at once.
 
 ---
 
-## 🏗️ Tech Stack
+## What it does
+
+Robonex simulates a warehouse where anywhere from 6 to 15 robots navigate simultaneously. Each robot finds its own path using A* with lane-cost awareness, respects lane reservations at intersections, adapts its speed based on congestion and battery, and automatically recovers from deadlocks. Everything is streamed live to a React dashboard over WebSocket at 10Hz.
+
+---
+
+## Tech Stack
 
 | Layer    | Technology |
 |----------|-----------|
 | Backend  | Python 3.10+ · FastAPI · WebSocket · Uvicorn |
 | Frontend | React 18 · HTML Canvas · Recharts |
 | Database | PostgreSQL *(optional — schema included)* |
-| Protocol | REST API + WebSocket real-time |
+| Protocol | REST API + WebSocket |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Robonex/
 │
 ├── backend/
-│   ├── main.py              # FastAPI server + full simulation engine
-│   ├── requirements.txt     # Python dependencies
-│   ├── schema.sql           # PostgreSQL schema (optional persistence)
+│   ├── main.py              # FastAPI server + simulation engine
+│   ├── requirements.txt
+│   ├── schema.sql           # PostgreSQL schema (optional)
 │   ├── check.py             # Pre-flight health checker
-│   └── .env.example         # Environment config template
+│   └── .env.example
 │
 ├── frontend/
 │   ├── public/
 │   │   └── index.html
 │   └── src/
 │       ├── index.js
-│       ├── App.js                          # Main layout · tabs · header
+│       ├── App.js
 │       ├── hooks/
-│       │   └── useSimulation.js            # WebSocket + REST hook
+│       │   └── useSimulation.js
 │       └── components/
-│           ├── SimulationCanvas.js         # Canvas renderer
-│           ├── MetricsPanel.js             # KPIs · charts · battery
-│           ├── RobotPanel.js               # Robot list · detail · controls
-│           ├── LanePanel.js                # Lane types · congestion
-│           └── AnalyticsPanel.js           # Historical charts · task queue
+│           ├── SimulationCanvas.js
+│           ├── MetricsPanel.js
+│           ├── RobotPanel.js
+│           ├── LanePanel.js
+│           └── AnalyticsPanel.js
 │
-├── start.sh                 # One-command startup (Linux/Mac)
+├── start.sh
 └── README.md
 ```
 
 ---
 
-## 🚀 Quick Start
+## Getting Started
 
 ### Prerequisites
-- Python 3.10 or higher
-- Node.js 16 or higher + npm
+- Python 3.10+
+- Node.js 16+ and npm
 
-### Step 1 — Health check
+### 1. Run the health check
 ```bash
 cd backend
 python check.py
 ```
+This verifies your Python version, installed packages, port availability, Node.js, and project files before you start anything.
 
-### Step 2 — Start backend
+### 2. Start the backend
 ```bash
 cd backend
 pip install -r requirements.txt
 python main.py
 ```
-- Backend → `http://localhost:8000`
-- Swagger API docs → `http://localhost:8000/docs`
+
+- API → `http://localhost:8000`
+- Swagger docs → `http://localhost:8000/docs`
 - WebSocket → `ws://localhost:8000/ws`
 
-### Step 3 — Start frontend
+### 3. Start the frontend
 ```bash
 cd frontend
 npm install
 npm start
 ```
+
 - App → `http://localhost:3000`
 
-### One-command (Linux/Mac)
+### One-command startup (Linux/Mac)
 ```bash
 bash start.sh
 ```
 
 ---
 
-## 🗺️ Warehouse Map
+## The Warehouse Map
 
-A **7 × 5 grid** — 35 nodes, ~75 lanes.
+A **7 × 5 grid** — 35 nodes connected by ~75 lanes.
 
-| Node Type    | Colour  | Description |
-|--------------|---------|-------------|
-| Depot        | 🔵 Blue  | Spawn & delivery points (top/bottom rows) |
+| Node Type    | Colour | Description |
+|--------------|--------|-------------|
+| Depot        | 🔵 Blue | Spawn and delivery points (top/bottom rows) |
 | Charging     | 🟡 Yellow ⚡ | Battery stations (left/right edges) |
-| Intersection | 🟢 Green | Controlled junction with traffic signals |
-| Normal       | ⚫ Grey  | Standard waypoints |
+| Intersection | 🟢 Green | Controlled junctions with traffic signals |
+| Normal       | ⚫ Grey | Standard waypoints |
 
 | Lane Type    | Colour | Speed | Capacity |
 |--------------|--------|-------|----------|
 | Normal       | Blue   | 1.0 u/s | 2 robots |
-| Narrow       | Orange | 0.7 u/s | 1 robot  |
-| Intersection | Green  | 0.6 u/s | 1 robot  |
-| Human Zone   | Red    | 0.4 u/s | 1 robot  |
+| Narrow       | Orange | 0.7 u/s | 1 robot |
+| Intersection | Green  | 0.6 u/s | 1 robot |
+| Human Zone   | Red    | 0.4 u/s | 1 robot |
 
 ---
 
-## 🧠 Core Algorithms
+## Core Algorithms
 
-### A\* Pathfinding
+### A* Pathfinding
+
+Each lane gets a cost based on its type, current congestion, and whether it's already reserved:
+
 ```
 lane_cost = (1 / max_speed)
           + (congestion × 3)
@@ -130,6 +131,9 @@ lane_cost = (1 / max_speed)
 ```
 
 ### Adaptive Speed Control
+
+Robots don't all move at the same speed — they adjust based on battery, lane type, and surrounding congestion:
+
 ```
 effective_speed = base_speed
                 × safety_mult    [critical=0.3, high=0.5, low=1.2]
@@ -139,134 +143,80 @@ effective_speed = base_speed
 ```
 
 ### Lane Reservation
-Critical and intersection lanes require exclusive reservation before entry. If denied, robot waits up to 5 seconds then replans around the lane.
+
+Critical and intersection lanes require an exclusive reservation before a robot enters. If denied, the robot waits up to 5 seconds, then replans a path around that lane.
 
 ### Traffic Signals
-Intersection lanes alternate **H-GREEN ↔ V-GREEN** every 40 ticks. Red-signal lanes cost 1,000,000 — robots wait or reroute.
+
+Intersection lanes alternate between **H-GREEN** and **V-GREEN** every 40 ticks. A red-signal lane costs 1,000,000 in the pathfinder — robots wait or reroute automatically.
 
 ### Deadlock Detection
-Builds a wait-graph every 15 ticks. Cycles = deadlock. Lowest-priority robot in the cycle is preempted and forced to replan.
+
+A wait-graph is rebuilt every 15 ticks. If a cycle is found, it's a deadlock. The lowest-priority robot in the cycle gets preempted and forced to replan.
 
 ### Near-Miss Detection
-Every 5 ticks, robots within **22px** of each other are flagged — both flash red on canvas, ⚠️ counter increments.
+
+Every 5 ticks, any two active robots within 22px of each other are flagged. Both flash red on the canvas and the near-miss counter increments.
 
 ### Task Queue
-Priority queue (1–3) of from→to delivery tasks. Idle robots pick the highest-priority task. Task queue auto-refills when low.
+
+Tasks have priorities 1–3 and are assigned from a priority queue. Idle robots pick up the highest-priority available task. The queue auto-refills when it runs low.
 
 ---
 
-## 🎮 Feature Guide
+## Dashboard
 
 ### Header Controls
 
 | Control | Description |
 |---------|-------------|
-| **Monitor / Robots / Lanes / Analytics** | Switch dashboard views |
+| **Monitor / Robots / Lanes / Analytics** | Switch views |
 | **● LIVE** | Green = connected, Red = disconnected |
-| **H-GREEN / V-GREEN + progress bar** | Current traffic signal phase |
-| **0.25× 0.5× 1× 2× 4×** | Simulation speed multiplier |
-| **Robots: N ▾** | Select robot count (6–15), applies on Reset |
-| **🚧 Block Lane** | Toggle block mode → click lane midpoints to block/unblock |
-| **🎯 Set Goal** | Toggle goal mode → click robot then click destination node |
-| **Clear Blocks** | Remove all blocked lanes instantly |
-| **↺ Reset** | Restart simulation |
-| **⏸ Pause / ▶ Start** | Pause or resume |
-| **🌙 / ☀️** | Dark / light mode toggle |
-
----
+| **H-GREEN / V-GREEN** | Current signal phase with progress bar |
+| **0.25× 0.5× 1× 2× 4×** | Simulation speed |
+| **Robots: N ▾** | Set robot count (6–15), applies on Reset |
+| **🚧 Block Lane** | Click lane midpoints on the canvas to block/unblock |
+| **🎯 Set Goal** | Click a robot then a node to manually route it |
+| **Clear Blocks** | Remove all blocked lanes |
+| **↺ Reset** | Restart the simulation |
+| **⏸ / ▶** | Pause or resume |
+| **🌙 / ☀️** | Dark/light mode |
 
 ### Monitor Tab
-Main live dashboard:
-- Canvas with robots, lanes, heatmap, signal glows
-- **Throughput, Deadlocks, Avg Speed, Avg Delay** cards
-- Robot Status pie chart
-- Network Congestion bar
-- Speed History chart
-- 🔥 Hottest Lanes
-- Fleet Battery visual
-
----
+Live canvas with robots, lane heatmap, and signal glows. Shows throughput, deadlocks, avg speed, avg delay, a robot status pie chart, network congestion, speed history, hottest lanes, and fleet battery.
 
 ### Robots Tab
-- Full robot list: name, speed, battery, status badge
-- Click any robot → detail panel shows: speed, battery %, tasks completed, delay, priority, path steps
-- **⛔ Emergency Stop** — freezes robot immediately
-- **▶ Resume** — robot replans and continues
-
----
+Full robot list with speed, battery, and status. Click any robot for a detail panel — tasks completed, delay, priority, path steps. Emergency stop and resume controls per robot.
 
 ### Lanes Tab
-- Lane type count cards
-- 🔒 Active reservations list
-- Per-lane congestion bars (green → orange → red)
-- Speed policy reference
-
----
+Lane type breakdown, active reservations, per-lane congestion bars, and speed policy reference.
 
 ### Analytics Tab
-Historical charts updated live:
-- Speed & Congestion dual line chart
-- Active vs Waiting robots area chart
-- Fleet Battery % trend
-- Near-Miss Events bar chart
-- Task Queue: queued / active / completed counts
-- Active task assignments with priority indicators
-- Recently completed task log
+Historical charts updated live: speed and congestion trends, active vs waiting robots, fleet battery, near-miss events, task queue status, active assignments, and recently completed tasks.
 
 ---
 
-### Block Lane Mode
-1. Click **🚧 Block Lane** → yellow banner appears
-2. Click the **midpoint** of any lane on canvas
-3. Lane turns red with ✕ → all robots instantly reroute
-4. Click same lane again to unblock
-5. **Clear Blocks** removes all at once
-6. **Exit Block** leaves the mode
+## Interacting with the Simulation
 
----
+### Blocking a Lane
+1. Click **Block Lane** — a yellow banner appears
+2. Click the midpoint of any lane on the canvas
+3. The lane turns red with ✕ — all robots reroute instantly
+4. Click the same lane again to unblock
+5. **Clear Blocks** removes everything at once
 
 ### Manual Goal Assignment
-1. Click **🎯 Set Goal** → blue banner appears
-2. Click a **robot** on canvas
-3. Click a **node circle** on canvas
-4. Robot immediately replans and navigates there
-
----
-
-### Near-Miss Flash
-- Fully automatic
-- Two active robots within 22px → both flash red
-- **⚠️ N NEAR MISS** badge pulses in bottom bar
-- Analytics tab tracks frequency over time
-
----
-
-### Traffic Signals
-- Automatic, runs in background
-- Intersection lanes glow green or red depending on phase
-- Small coloured dot on each intersection node shows live state
-- H-GREEN = horizontal open, vertical wait
-- V-GREEN = vertical open, horizontal wait
-
----
+1. Click **Set Goal** — a blue banner appears
+2. Click a robot on the canvas
+3. Click a destination node
+4. The robot replans and navigates there immediately
 
 ### Heatmap
-- Toggle with **Heatmap** switch
-- Blue = cool / rarely used
-- Orange → Red = hot / heavily used
-- Hottest Lanes list shows top 5
-- Resets on simulation reset
+Toggle the **Heatmap** switch to overlay lane usage intensity. Blue is low traffic, orange and red are heavily used. The top 5 hottest lanes are listed below the canvas. Resets with the simulation.
 
 ---
 
-### Dark Mode
-- Click 🌙 for dark theme
-- Click ☀️ for light theme
-- Canvas, panels, charts, badges all adapt
-
----
-
-## 🔌 REST API Reference
+## REST API
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -288,7 +238,7 @@ Historical charts updated live:
 | GET | `/api/metrics/history` | History (last 120 snapshots) |
 | GET | `/api/heatmap` | Lane heatmap data |
 
-### WebSocket `ws://localhost:8000/ws`
+### WebSocket — `ws://localhost:8000/ws`
 
 | Event | Trigger | Payload |
 |-------|---------|---------|
@@ -297,14 +247,14 @@ Historical charts updated live:
 
 ---
 
-## 📊 Metrics Reference
+## Metrics
 
-| Metric | What it measures |
-|--------|-----------------|
+| Metric | Description |
+|--------|-------------|
 | Throughput | Total tasks completed |
 | Deadlocks | Total deadlocks detected and resolved |
 | Avg Speed | Mean speed of actively moving robots |
-| Avg Delay | Mean extra wait time vs optimal route |
+| Avg Delay | Mean extra wait vs optimal route |
 | Congestion | Average lane congestion (0–100%) |
 | Battery | Fleet average battery % |
 | Lane Utilization | % of lanes with active robots |
@@ -312,26 +262,9 @@ Historical charts updated live:
 
 ---
 
-## 🎬 Video Demo Script (5–10 min)
+## Environment Config
 
-1. **Intro** — Warehouse map, node types, lane colours
-2. **Speed demo** — 0.25× slow motion → 4× fast forward → back to 1×
-3. **Heatmap** — Toggle, explain blue→red intensity
-4. **Traffic signals** — Point to H-GREEN indicator, show intersection glow switching
-5. **Scale up** — Change to 15 robots, reset, show crowded warehouse
-6. **Block a lane** — Block mode, click a busy lane, watch robots reroute
-7. **Near-miss** — Point out red flashing robots and ⚠️ badge
-8. **Manual route** — Set Goal, route a robot to a depot
-9. **Analytics tab** — Speed/congestion charts, task queue, battery trend
-10. **Robots tab** — Emergency stop one robot, resume it
-11. **Deadlock explain** — Show the algorithm in the code (wait-graph cycles)
-12. **Dark mode** — Toggle for a polished finish
-
----
-
-## ⚙️ Environment Config
-
-Copy `backend/.env.example` → `backend/.env`:
+Copy `backend/.env.example` → `backend/.env` and adjust as needed:
 
 ```env
 HOST=0.0.0.0
@@ -342,17 +275,6 @@ MAX_WAIT_BEFORE_REPLAN=5.0
 NEAR_MISS_DISTANCE=22.0
 SIGNAL_PHASE_TICKS=40
 ```
-
----
-
-## 🧪 Pre-flight Check
-
-```bash
-cd backend
-python check.py
-```
-
-Verifies: Python version · packages · port availability · all project files · Node.js · PostgreSQL (optional)
 
 ---
 
