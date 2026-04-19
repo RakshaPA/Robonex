@@ -17,6 +17,7 @@ const DEFAULT_STATE = {
   signal_phase: 0, signal_progress: 0,
   task_summary: { queued: 0, active: 0, completed: 0, tasks_list: [], active_tasks: [], recent_completed: [] },
   metrics_history: [],
+  goal_reached: [],
 };
 
 export function useSimulation() {
@@ -61,6 +62,7 @@ export function useSimulation() {
           signal_progress:  data.signal_progress  ?? s.signal_progress,
           task_summary:     data.task_summary     ?? s.task_summary,
           metrics_history:  Array.isArray(data.metrics_history) ? data.metrics_history : s.metrics_history,
+          goal_reached:     Array.isArray(data.goal_reached)    ? data.goal_reached    : [],
           connected: true,
         }));
       } catch (err) {

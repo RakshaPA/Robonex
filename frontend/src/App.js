@@ -5,6 +5,7 @@ import MetricsPanel from './components/MetricsPanel';
 import RobotPanel from './components/RobotPanel';
 import LanePanel from './components/LanePanel';
 import AnalyticsPanel from './components/AnalyticsPanel';
+import { CheckCircle } from 'lucide-react';
 
 const TABS   = ['Monitor', 'Robots', 'Lanes', 'Analytics'];
 const SPEEDS = [
@@ -31,12 +32,13 @@ export default function App() {
   const [goalMode,    setGoalMode]   = useState(false);
   const [goalStep,    setGoalStep]   = useState('select_robot');
   const [goalRobot,   setGoalRobot]  = useState(null);
+  const [toasts,      setToasts]     = useState([]);
   const countSynced = useRef(false);
 
   const {
     robots, lanes, nodes, heatmap, metrics, running, tick, connected,
     speed_multiplier, near_miss_ids, signal_phase, signal_progress,
-    task_summary, metrics_history,
+    task_summary, metrics_history, goal_reached
   } = state;
 
   // Sync robot count with backend once on first data
@@ -53,6 +55,28 @@ export default function App() {
     countSynced.current = false;
     resetSim(newCount);
   }, [resetSim]);
+
+  // Handle Goal Reached Notifications
+  useEffect(() => {
+    if (goal_reached && goal_reached.length > 0) {
+      goal_reached.forEach(event => {
+        const robot = robots.find(r => r.id === event.robot_id);
+        const node = nodes.find(n => n.id === event.node_id);
+        if (robot) {
+          const id = Math.random().toString(36).substr(2, 9);
+          const newToast = {
+            id,
+            message: `${robot.name} reached goal: ${node ? node.name : event.node_id}`,
+            color: robot.color,
+          };
+          setToasts(prev => [...prev, newToast]);
+          setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== id));
+          }, 4000);
+        }
+      });
+    }
+  }, [goal_reached, robots, nodes]);
 
   /* ── Goal mode ────────────────────────────────────────────────────────── */
   const enterGoalMode = useCallback(() => {
@@ -344,6 +368,34 @@ export default function App() {
       </main>
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}`}</style>
+
+      {/* TOASTS */}
+      <div style={{
+        position: 'fixed', bottom: 20, right: 20, zIndex: 9999,
+        display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none'
+      }}>
+        {toasts.map(t => (
+          <div key={t.id} style={{
+            background: dark ? '#1E2A3A' : '#FFFFFF',
+            borderLeft: `4px solid ${t.color || '#6BB86F'}`,
+            padding: '12px 16px', borderRadius: 8,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            display: 'flex', alignItems: 'center', gap: 10,
+            minWidth: 200, pointerEvents: 'auto',
+            animation: 'slideIn 0.3s ease-out',
+            color: text,
+          }}>
+            <CheckCircle size={16} color={t.color || '#6BB86F'} />
+            <span style={{ fontSize: 12, fontWeight: 600 }}>{t.message}</span>
+          </div>
+        ))}
+      </div>
+      <style>{`
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
